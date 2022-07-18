@@ -3,6 +3,7 @@ package crawlerPool
 import (
 	"context"
 	"io"
+	"net/url"
 	"sync/atomic"
 	"time"
 
@@ -22,7 +23,7 @@ type (
 	}
 
 	FetcherExtractor interface {
-		Fetch(ctx context.Context, url string) (io.ReadCloser, error)
+		Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error)
 		Extract(io.Reader) (dao.CrawlResult, error)
 	}
 )
@@ -130,7 +131,7 @@ func (cp *CrawlerPool) Start(ctx context.Context, depth int) {
 				// picked up first job that is too deep.
 				// given a FIFO queue, the first job that is too deep is the start of the new depth.
 				// Breadth First
-				// therefore crawl is completed.
+				// therefore crawl is completed for the specified depth.
 				return
 			}
 
@@ -154,5 +155,9 @@ func (cp *CrawlerPool) decrementCrawlerCount() {
 }
 
 func (cp *CrawlerPool) AddJobToQueue() {
-	cp.jobQueue.Push(dao.CrawlJob{SeedURL: "https://google.com", Depth: 0})
+	targetURL, err := url.Parse("https://google.com")
+	if err != nil {
+		return
+	}
+	cp.jobQueue.Push(dao.CrawlJob{SeedURL: targetURL})
 }

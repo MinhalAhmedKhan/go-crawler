@@ -1,8 +1,10 @@
 package dao
 
+import "net/url"
+
 // CrawlJob represents an url to work on.
 type CrawlJob struct {
-	SeedURL string
+	SeedURL *url.URL
 	Depth   int
 }
 

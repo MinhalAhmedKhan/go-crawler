@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 	"monzoCrawler/dao"
+	"net/url"
 )
 
 type (
 	// FetcherExtractor focuses on retrieving and extracting from a given url.
 	// Response formats may differ e.g. csv so its responsibility is to also extract based on the expected format.
 	FetcherExtractor interface {
-		Fetch(ctx context.Context, url string) (io.ReadCloser, error)
+		Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error)
 		Extract(io.Reader) (dao.CrawlResult, error)
 	}
 
@@ -48,7 +49,7 @@ func (c *Crawler) Crawl(ctx context.Context) {
 
 	// TODO: Handle error
 	// error retryable?
-	response, err := c.fetcherExtractor.Fetch(ctx, c.job.SeedURL)
+	response, err := c.fetcherExtractor.Fetch(ctx, *c.job.SeedURL)
 	if err != nil {
 		return
 	}

@@ -6,6 +6,7 @@ import (
 	"io"
 	"monzoCrawler/dao"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -21,8 +22,8 @@ func NewHTTPFetcherExtractor(timeout time.Duration) HTTPFetcherExtractor {
 	}
 }
 
-func (fe HTTPFetcherExtractor) Fetch(ctx context.Context, url string) (io.ReadCloser, error) {
-	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
+func (fe HTTPFetcherExtractor) Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error) {
+	req, err := http.NewRequest(http.MethodGet, url.String(), http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,11 @@ func (fe *HTTPFetcherExtractor) getLinks(body io.Reader) dao.CrawlResult {
 			if "a" == token.Data {
 				for _, attr := range token.Attr {
 					if attr.Key == "href" {
-						crawlResult.NewJobs = append(crawlResult.NewJobs, dao.CrawlJob{SeedURL: attr.Val})
+						targetURL, err := url.Parse(attr.Val)
+						if err != nil {
+							continue
+						}
+						crawlResult.NewJobs = append(crawlResult.NewJobs, dao.CrawlJob{SeedURL: targetURL})
 					}
 				}
 			}
