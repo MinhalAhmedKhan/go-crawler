@@ -11,10 +11,10 @@ import (
 )
 
 func main() {
-	logger := log.New(os.Stdout, "", log.LstdFlags)
-
 	ctx, done := listenForCancellationAndAddToContext()
 	defer done()
+
+	logger := log.New(os.Stdout, "", log.LstdFlags)
 
 	jobQueue := FIFOqueue.NewFIFOQueue()
 
@@ -25,7 +25,7 @@ func main() {
 
 	pool.AddJobToQueue()
 
-	go pool.Start(ctx)
+	go pool.Start(ctx, 3)
 
 	pool.Wait()
 }

@@ -62,6 +62,8 @@ func (c *Crawler) Crawl(ctx context.Context) {
 
 	for _, job := range results.NewJobs {
 		// TODO: Handle error
+		// increment depth
+		job.Depth = c.job.Depth + 1
 		_ = c.jobPushQueue.Push(job)
 	}
 }

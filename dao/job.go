@@ -3,6 +3,7 @@ package dao
 // CrawlJob represents an url to work on.
 type CrawlJob struct {
 	SeedURL string
+	Depth   int
 }
 
 type CrawlResult struct {

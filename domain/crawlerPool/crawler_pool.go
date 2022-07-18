@@ -46,15 +46,19 @@ type CrawlerPool struct {
 
 func NewCrawlerPool(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor) *CrawlerPool {
 	return &CrawlerPool{
-		logger:              logger,
-		size:                size,
-		jobQueue:            jobQueue,
-		fetcherExtractor:    fetcherExtractor,
+		logger: logger,
+
+		size:     size,
+		jobQueue: jobQueue,
+
+		fetcherExtractor: fetcherExtractor,
+
 		activeCrawlers:      0,
 		updatedCrawlerCount: make(chan struct{}),
 		crawlerDone:         make(chan struct{}),
-		shutdownTimeout:     shutdownTimeout,
-		forceShutdown:       make(chan interface{}, 1),
+
+		shutdownTimeout: shutdownTimeout,
+		forceShutdown:   make(chan interface{}, 1),
 	}
 }
 
@@ -82,7 +86,7 @@ func (cp *CrawlerPool) Wait() {
 		case <-cp.forceShutdown:
 			return
 		case <-cp.updatedCrawlerCount:
-			//TODO: Fix waiting logic. doesnt work well with 1 active craelwer as it exits
+			//TODO: Fix waiting logic. doesnt work well with 1 active crawler as it exits
 			if atomic.LoadUint64(&cp.activeCrawlers) == 0 {
 				return
 			}
@@ -90,8 +94,8 @@ func (cp *CrawlerPool) Wait() {
 	}
 }
 
-// Start start crawling .
-func (cp *CrawlerPool) Start(ctx context.Context) {
+// Start crawling up to the specified depth.
+func (cp *CrawlerPool) Start(ctx context.Context, depth int) {
 	go cp.listenForCompletedJobs(ctx)
 
 	for {
@@ -119,8 +123,15 @@ func (cp *CrawlerPool) Start(ctx context.Context) {
 
 			if !ok {
 				//TODO: log Invalid job type.
-				cp.logger.Printf("Invalid job type found, got %T", jobPickedUp)
+				cp.logger.Printf("Invalid job type found, got job of type %T", jobPickedUp)
 				continue
+			}
+
+			if job.Depth > depth {
+				// picked up first job that is too deep.
+				// given a FIFO queue, the first job that is too deep is the start of the new depth.
+				// therefore crawl is compeleted.
+				return
 			}
 
 			cp.incrementCrawlerCount()
@@ -143,5 +154,5 @@ func (cp *CrawlerPool) decrementCrawlerCount() {
 }
 
 func (cp *CrawlerPool) AddJobToQueue() {
-	cp.jobQueue.Push(dao.CrawlJob{SeedURL: "https://google.com"})
+	cp.jobQueue.Push(dao.CrawlJob{SeedURL: "https://google.com", Depth: 0})
 }
