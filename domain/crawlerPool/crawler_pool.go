@@ -102,7 +102,6 @@ func (cp *CrawlerPool) Start(ctx context.Context, depth int) {
 		select {
 		case <-ctx.Done():
 			// graceful shutdown
-			cp.Wait()
 			return
 		default:
 			if atomic.LoadUint64(&cp.activeCrawlers) == cp.size {
@@ -130,7 +129,8 @@ func (cp *CrawlerPool) Start(ctx context.Context, depth int) {
 			if job.Depth > depth {
 				// picked up first job that is too deep.
 				// given a FIFO queue, the first job that is too deep is the start of the new depth.
-				// therefore crawl is compeleted.
+				// Breadth First
+				// therefore crawl is completed.
 				return
 			}
 
