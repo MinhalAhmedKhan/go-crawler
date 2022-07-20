@@ -15,6 +15,7 @@ import (
 
 func TestCrawler_Crawl(t *testing.T) {
 	t.Run("send a signal when the crawler is done", func(t *testing.T) {
+		t.Parallel()
 
 		fetcherExtractorMock := &mocks.FetcherExtractorMock{
 			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
@@ -38,7 +39,7 @@ func TestCrawler_Crawl(t *testing.T) {
 
 		doneChan := make(chan struct{})
 
-		crwler := crawler.NewCrawler(fetcherExtractorMock, crawlJob, queue, doneChan)
+		crwler := crawler.New(fetcherExtractorMock, crawlJob, queue, doneChan)
 
 		go crwler.Crawl(context.Background())
 

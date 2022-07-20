@@ -10,7 +10,7 @@ type FIFOQueue struct {
 	size  uint64
 }
 
-func NewFIFOQueue() *FIFOQueue {
+func New() *FIFOQueue {
 	return &FIFOQueue{
 		queue: queue.NewLockfreeQueue(),
 		size:  0,

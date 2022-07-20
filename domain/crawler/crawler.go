@@ -37,7 +37,7 @@ type Crawler struct {
 	done chan<- struct{} // channel to signal that the crawler is done
 }
 
-func NewCrawler(fetcherExtractor FetcherExtractor, job model.CrawlJob, jobPushQueue Queue, done chan<- struct{}) *Crawler {
+func New(fetcherExtractor FetcherExtractor, job model.CrawlJob, jobPushQueue Queue, done chan<- struct{}) *Crawler {
 	return &Crawler{
 		job:              job,
 		jobPushQueue:     jobPushQueue,

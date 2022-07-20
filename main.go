@@ -16,12 +16,12 @@ func main() {
 
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 
-	jobQueue := FIFOqueue.NewFIFOQueue()
+	jobQueue := FIFOqueue.New()
 
 	fetcherExtractor := urlFetcherExtractor.NewHTTPFetcherExtractor(time.Minute)
 	shutdownTimeout := 10 * time.Second
 
-	pool := crawlerPool.NewCrawlerPool(logger, 2, jobQueue, shutdownTimeout, fetcherExtractor)
+	pool := crawlerPool.New(logger, 2, jobQueue, shutdownTimeout, fetcherExtractor)
 
 	pool.AddJobToQueue()
 

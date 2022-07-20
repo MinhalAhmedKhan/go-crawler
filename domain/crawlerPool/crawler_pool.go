@@ -46,7 +46,7 @@ type CrawlerPool struct {
 	forceShutdown   chan interface{} // Channel to signal that the pool should forcefully shut down.
 }
 
-func NewCrawlerPool(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor) *CrawlerPool {
+func New(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor) *CrawlerPool {
 	return &CrawlerPool{
 		logger: logger,
 
@@ -138,7 +138,7 @@ func (cp *CrawlerPool) Start(ctx context.Context, depth int) {
 
 			cp.incrementCrawlerCount()
 			go crawler.
-				NewCrawler(cp.fetcherExtractor, job, cp.jobQueue, cp.crawlerDone).
+				New(cp.fetcherExtractor, job, cp.jobQueue, cp.crawlerDone).
 				Crawl(ctx)
 
 		}
