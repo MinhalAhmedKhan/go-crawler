@@ -3,11 +3,13 @@ package crawlerPool
 import (
 	"context"
 	"io"
+
 	"net/url"
 	"sync/atomic"
 	"time"
 
 	"monzoCrawler/domain/crawler"
+	"monzoCrawler/domain/model"
 )
 
 type (
