@@ -4,10 +4,11 @@ import (
 	"context"
 	"golang.org/x/net/html"
 	"io"
-	"monzoCrawler/dao"
 	"net/http"
 	"net/url"
 	"time"
+
+	"monzoCrawler/domain/model"
 )
 
 type HTTPFetcherExtractor struct {
@@ -35,13 +36,13 @@ func (fe HTTPFetcherExtractor) Fetch(ctx context.Context, url url.URL) (io.ReadC
 	return resp.Body, nil
 }
 
-func (fe HTTPFetcherExtractor) Extract(contents io.Reader) (dao.CrawlResult, error) {
+func (fe HTTPFetcherExtractor) Extract(contents io.Reader) (model.CrawlResult, error) {
 	return fe.getLinks(contents), nil
 }
 
 //Collect all links from response body and return it as an array of strings
-func (fe *HTTPFetcherExtractor) getLinks(body io.Reader) dao.CrawlResult {
-	crawlResult := dao.CrawlResult{NewJobs: []dao.CrawlJob{}}
+func (fe *HTTPFetcherExtractor) getLinks(body io.Reader) model.CrawlResult {
+	crawlResult := model.CrawlResult{NewJobs: []model.CrawlJob{}}
 
 	z := html.NewTokenizer(body)
 	for {
@@ -60,7 +61,9 @@ func (fe *HTTPFetcherExtractor) getLinks(body io.Reader) dao.CrawlResult {
 						if err != nil {
 							continue
 						}
-						crawlResult.NewJobs = append(crawlResult.NewJobs, dao.CrawlJob{SeedURL: targetURL})
+						//targetURL.ResolveReference()
+						//fmt.Println(targetURL.String(), "is a link", attr.Val)
+						crawlResult.NewJobs = append(crawlResult.NewJobs, model.CrawlJob{SeedURL: targetURL})
 					}
 				}
 			}

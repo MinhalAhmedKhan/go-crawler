@@ -1,11 +1,15 @@
+//go:generate moq -out internal/mocks/fetcher_extractor_moq.go -pkg mocks . FetcherExtractor
+//go:generate moq -out internal/mocks/queue_moq.go -pkg mocks . Queue
+
 package crawler
 
 import (
 	"context"
 	"fmt"
 	"io"
-	"monzoCrawler/dao"
 	"net/url"
+
+	"monzoCrawler/domain/model"
 )
 
 type (
@@ -13,7 +17,7 @@ type (
 	// Response formats may differ e.g. csv so its responsibility is to also extract based on the expected format.
 	FetcherExtractor interface {
 		Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error)
-		Extract(io.Reader) (dao.CrawlResult, error)
+		Extract(io.Reader) (model.CrawlResult, error)
 	}
 
 	// Queue of jobs to push to.
@@ -23,21 +27,21 @@ type (
 )
 
 type Crawler struct {
-	job          dao.CrawlJob // job to crawl
-	jobPushQueue Queue        // queue to send generated jobs to
+	job          model.CrawlJob // job to crawl
+	jobPushQueue Queue          // queue to send generated jobs to
 
-	result dao.CrawlResult // result of the crawl
+	result model.CrawlResult // result of the crawl
 
 	fetcherExtractor FetcherExtractor
 
 	done chan<- struct{} // channel to signal that the crawler is done
 }
 
-func NewCrawler(fetcherExtractor FetcherExtractor, job dao.CrawlJob, jobPushQueue Queue, done chan<- struct{}) *Crawler {
+func NewCrawler(fetcherExtractor FetcherExtractor, job model.CrawlJob, jobPushQueue Queue, done chan<- struct{}) *Crawler {
 	return &Crawler{
 		job:              job,
 		jobPushQueue:     jobPushQueue,
-		result:           dao.CrawlResult{},
+		result:           model.CrawlResult{},
 		fetcherExtractor: fetcherExtractor,
 		done:             done,
 	}

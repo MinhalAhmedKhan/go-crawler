@@ -7,7 +7,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"monzoCrawler/dao"
 	"monzoCrawler/domain/crawler"
 )
 
@@ -24,7 +23,7 @@ type (
 
 	FetcherExtractor interface {
 		Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error)
-		Extract(io.Reader) (dao.CrawlResult, error)
+		Extract(io.Reader) (model.CrawlResult, error)
 	}
 )
 
@@ -119,7 +118,7 @@ func (cp *CrawlerPool) Start(ctx context.Context, depth int) {
 				continue
 			}
 
-			job, ok := jobPickedUp.(dao.CrawlJob)
+			job, ok := jobPickedUp.(model.CrawlJob)
 
 			if !ok {
 				//TODO: log Invalid job type.
@@ -159,5 +158,5 @@ func (cp *CrawlerPool) AddJobToQueue() {
 	if err != nil {
 		return
 	}
-	cp.jobQueue.Push(dao.CrawlJob{SeedURL: targetURL})
+	cp.jobQueue.Push(model.CrawlJob{SeedURL: targetURL})
 }
