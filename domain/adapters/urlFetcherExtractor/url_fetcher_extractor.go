@@ -11,6 +11,7 @@ import (
 	"monzoCrawler/domain/model"
 )
 
+// HTTPFetcherExtractor .
 type HTTPFetcherExtractor struct {
 	client *http.Client
 }
@@ -40,7 +41,7 @@ func (fe HTTPFetcherExtractor) Extract(contents io.Reader) (model.CrawlResult, e
 	return fe.getLinks(contents), nil
 }
 
-//Collect all links from response body and return it as an array of strings
+// Collect all links from response body and return it as an array of strings
 func (fe *HTTPFetcherExtractor) getLinks(body io.Reader) model.CrawlResult {
 	crawlResult := model.CrawlResult{NewJobs: []model.CrawlJob{}}
 
