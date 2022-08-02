@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	ctx, done := listenForCancellationAndAddToContext()
-	defer done()
+	ctx, cancel := listenForCancellationAndAddToContext()
+	defer cancel()
 
 	jobQueue := FIFOqueue.New()
 	fetcherExtractor := urlFetcherExtractor.NewHTTPFetcherExtractor(time.Minute)
@@ -22,18 +22,21 @@ func main() {
 	}
 	jobQueue.Push(model.CrawlJob{SeedURL: targetURL})
 
+	done := make(chan struct{}, 1)
+
 	app := NewApp(
 		AppConfig{
 			FetcherExtractor: fetcherExtractor,
 			IngressJobQueue:  jobQueue,
 			CrawlerPoolConfig: CrawlerPoolConfig{
 				CrawlerPoolShutDownTimeout: time.Second * 10,
-				CrawlerPoolSize:            1,
-				CrawlerDepth:               2,
+				CrawlerPoolSize:            1000,
+				CrawlerDepth:               3,
+				DoneChan:                   done,
 			},
 		})
 
 	app.StartCrawlerPool(ctx)
 
-	app.WaitForCrawlerPoolToComplete()
+	<-done
 }

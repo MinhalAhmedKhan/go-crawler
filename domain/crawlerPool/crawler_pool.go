@@ -82,19 +82,34 @@ func (cp *CrawlerPool) listenForCompletedJobs(ctx context.Context) {
 		case <-cp.crawlerDone:
 			// A crawler completed its job.
 			cp.decrementCrawlerCount()
-
 		}
 	}
 }
 
 // Wait blocks until all crawlers have exited or shutdown timed out forcing a shutdown.
-func (cp *CrawlerPool) Wait() {
+func (cp *CrawlerPool) wait(ctx context.Context, doneChan chan struct{}) {
+	cancelled := false
+
+	defer func() {
+		doneChan <- struct{}{}
+	}()
+
 	for {
 		select {
+		case <-ctx.Done():
+			cancelled = true
+			ctx = context.Background()
 		case <-cp.forceShutdown:
+			cp.logger.Printf("Shutdown forced")
 			return
 		case <-cp.updatedCrawlerCount:
-			if atomic.LoadUint64(&cp.activeCrawlers) == 0 && cp.GetDepthCount() == cp.maxDepth {
+			if cancelled && atomic.LoadUint64(&cp.activeCrawlers) == 0 {
+				cp.logger.Printf("all crawlers successfully shutdown")
+				return
+			}
+			// TODO: what if the depth is < maxdepth?
+			if atomic.LoadUint64(&cp.activeCrawlers) == 0 && cp.getDepthCount() > cp.maxDepth {
+				cp.logger.Printf("max depth of %d crawled, shutting down", cp.maxDepth)
 				return
 			}
 		}
@@ -102,8 +117,9 @@ func (cp *CrawlerPool) Wait() {
 }
 
 // Start crawling up to the specified depth.
-func (cp *CrawlerPool) Start(ctx context.Context) {
+func (cp *CrawlerPool) Start(ctx context.Context, doneChan chan struct{}) {
 	go cp.listenForCompletedJobs(ctx)
+	go cp.wait(ctx, doneChan)
 
 	for {
 		select {
@@ -134,18 +150,16 @@ func (cp *CrawlerPool) Start(ctx context.Context) {
 				continue
 			}
 
-			if job.Depth > cp.maxDepth {
+			if cp.getDepthCount() > cp.maxDepth {
 				// picked up first job that is too deep.
 				// given a breadth first search, the first job that is too deep is the start of the new depth.
 				// therefore, crawl is completed for the specified depth.
 				return
 			}
 
-			if job.Depth > cp.GetDepthCount() {
+			if job.Depth > cp.getDepthCount() {
 				cp.incrementDepthCount()
 			}
-
-			cp.logger.Printf("Starting crawler for %s", job.SeedURL)
 
 			cp.incrementCrawlerCount()
 			go crawler.
@@ -170,6 +184,6 @@ func (cp *CrawlerPool) incrementDepthCount() {
 	atomic.AddUint64(&cp.depthReached, 1)
 }
 
-func (cp CrawlerPool) GetDepthCount() uint64 {
+func (cp CrawlerPool) getDepthCount() uint64 {
 	return atomic.LoadUint64(&cp.depthReached)
 }

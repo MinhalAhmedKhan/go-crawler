@@ -24,9 +24,6 @@ var _ crawlerPool.Queue = &QueueMock{}
 // 			PushFunc: func(val interface{}) error {
 // 				panic("mock out the Push method")
 // 			},
-// 			SizeFunc: func() uint64 {
-// 				panic("mock out the Size method")
-// 			},
 // 		}
 //
 // 		// use mockedQueue in code that requires crawlerPool.Queue
@@ -40,9 +37,6 @@ type QueueMock struct {
 	// PushFunc mocks the Push method.
 	PushFunc func(val interface{}) error
 
-	// SizeFunc mocks the Size method.
-	SizeFunc func() uint64
-
 	// calls tracks calls to the methods.
 	calls struct {
 		// Pop holds details about calls to the Pop method.
@@ -53,13 +47,9 @@ type QueueMock struct {
 			// Val is the val argument value.
 			Val interface{}
 		}
-		// Size holds details about calls to the Size method.
-		Size []struct {
-		}
 	}
 	lockPop  sync.RWMutex
 	lockPush sync.RWMutex
-	lockSize sync.RWMutex
 }
 
 // Pop calls PopFunc.
@@ -116,31 +106,5 @@ func (mock *QueueMock) PushCalls() []struct {
 	mock.lockPush.RLock()
 	calls = mock.calls.Push
 	mock.lockPush.RUnlock()
-	return calls
-}
-
-// Size calls SizeFunc.
-func (mock *QueueMock) Size() uint64 {
-	if mock.SizeFunc == nil {
-		panic("QueueMock.SizeFunc: method is nil but Queue.Size was just called")
-	}
-	callInfo := struct {
-	}{}
-	mock.lockSize.Lock()
-	mock.calls.Size = append(mock.calls.Size, callInfo)
-	mock.lockSize.Unlock()
-	return mock.SizeFunc()
-}
-
-// SizeCalls gets all the calls that were made to Size.
-// Check the length with:
-//     len(mockedQueue.SizeCalls())
-func (mock *QueueMock) SizeCalls() []struct {
-} {
-	var calls []struct {
-	}
-	mock.lockSize.RLock()
-	calls = mock.calls.Size
-	mock.lockSize.RUnlock()
 	return calls
 }

@@ -27,7 +27,3 @@ func (q *FIFOQueue) Pop() (interface{}, error) {
 	atomic.AddUint64(&q.size, ^uint64(0))
 	return q.queue.Pop(), nil
 }
-
-func (q FIFOQueue) Size() uint64 {
-	return atomic.LoadUint64(&q.size)
-}

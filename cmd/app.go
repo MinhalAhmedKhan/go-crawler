@@ -20,7 +20,6 @@ type (
 	Queue interface {
 		Push(val interface{}) error
 		Pop() (interface{}, error)
-		Size() uint64
 	}
 )
 
@@ -40,9 +39,5 @@ func NewApp(cfg AppConfig) *App {
 }
 
 func (a *App) StartCrawlerPool(ctx context.Context) {
-	go a.crawlerPool.Start(ctx)
-}
-
-func (a App) WaitForCrawlerPoolToComplete() {
-	a.crawlerPool.Wait()
+	go a.crawlerPool.Start(ctx, a.crawlerPoolConfig.DoneChan)
 }

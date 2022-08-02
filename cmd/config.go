@@ -12,4 +12,5 @@ type CrawlerPoolConfig struct {
 	CrawlerPoolShutDownTimeout time.Duration
 	CrawlerPoolSize            uint64
 	CrawlerDepth               uint64
+	DoneChan                   chan struct{}
 }
