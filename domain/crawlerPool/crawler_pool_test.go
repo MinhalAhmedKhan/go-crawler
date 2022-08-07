@@ -102,13 +102,12 @@ func TestCrawlerPool_Start(t *testing.T) {
 			},
 			ExtractFunc: func(io.Reader) (model.CrawlResult, error) {
 				return model.CrawlResult{}, nil
-			}
+			},
 		}
 
 		crawlerPool := crawlerPool.New(logger, 5, FIFOqueue.New(), time.Second, mockFetcherExtractor, 1)
 
 		go crawlerPool.Start(ctx, doneChan)
-
 
 	})
 }
