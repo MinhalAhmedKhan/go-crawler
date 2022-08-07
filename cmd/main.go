@@ -16,11 +16,7 @@ func main() {
 	jobQueue := FIFOqueue.New()
 	fetcherExtractor := urlFetcherExtractor.NewHTTPFetcherExtractor(time.Minute)
 
-	targetURL, err := url.Parse("https://google.com")
-	if err != nil {
-		return
-	}
-	jobQueue.Push(model.CrawlJob{SeedURL: targetURL})
+	jobQueue.Push(model.CrawlJob{SeedURL: &url.URL{Scheme: "http", Host: "monzo.com"}})
 
 	done := make(chan struct{}, 1)
 
@@ -30,7 +26,7 @@ func main() {
 			IngressJobQueue:  jobQueue,
 			CrawlerPoolConfig: CrawlerPoolConfig{
 				CrawlerPoolShutDownTimeout: time.Second * 10,
-				CrawlerPoolSize:            1000,
+				CrawlerPoolSize:            100,
 				CrawlerDepth:               3,
 				DoneChan:                   done,
 			},

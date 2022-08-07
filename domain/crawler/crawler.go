@@ -14,6 +14,7 @@ import (
 
 type (
 	// FetcherExtractor focuses on retrieving and extracting from a given url.
+	// Fetching may differ e.g. HTTP, Reading from a file, etc.
 	// Response formats may differ e.g. csv so its responsibility is to also extract based on the expected format.
 	FetcherExtractor interface {
 		Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error)

@@ -1,4 +1,5 @@
 //go:generate moq -out internal/mocks/queue_moq.go -pkg mocks . Queue
+//go:generate moq -out internal/mocks/fetcherextractor_moq.go -pkg mocks . FetcherExtractor
 
 package crawlerPool
 
@@ -28,6 +29,11 @@ type (
 		Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error)
 		Extract(io.Reader) (model.CrawlResult, error)
 	}
+
+	// JobFilter is a function that returns false if the job should be filtered out.
+	JobFilter interface {
+		ShouldCrawl(job model.CrawlJob) bool
+	}
 )
 
 // CrawlerPool manages crawlers running.
@@ -41,6 +47,8 @@ type CrawlerPool struct {
 
 	fetcherExtractor FetcherExtractor
 
+	jobFilters []JobFilter // Filters to apply to jobs.
+
 	activeCrawlers      uint64        // Number of active crawlers.
 	updatedCrawlerCount chan struct{} // Channel to signal that crawler count has been updated.
 	crawlerDone         chan struct{} // Channel to signal that a crawler is done.
@@ -50,7 +58,9 @@ type CrawlerPool struct {
 
 }
 
-func New(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor, maxDepth uint64) *CrawlerPool {
+// New creates a new CrawlerPool.
+// Filters are applied in the order they are specified.
+func New(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor, maxDepth uint64, jobFilters ...JobFilter) *CrawlerPool {
 	return &CrawlerPool{
 		logger: logger,
 
@@ -89,7 +99,7 @@ func (cp *CrawlerPool) listenForCompletedJobs(ctx context.Context) {
 // Wait blocks until all crawlers have exited or shutdown timed out forcing a shutdown.
 func (cp *CrawlerPool) wait(ctx context.Context, doneChan chan struct{}) {
 	cancelled := false
-
+	// signal crawler pool exited
 	defer func() {
 		doneChan <- struct{}{}
 	}()
@@ -98,6 +108,9 @@ func (cp *CrawlerPool) wait(ctx context.Context, doneChan chan struct{}) {
 		select {
 		case <-ctx.Done():
 			cancelled = true
+			if atomic.LoadUint64(&cp.activeCrawlers) == 0 {
+				return
+			}
 			ctx = context.Background()
 		case <-cp.forceShutdown:
 			cp.logger.Printf("Shutdown forced")
@@ -107,7 +120,7 @@ func (cp *CrawlerPool) wait(ctx context.Context, doneChan chan struct{}) {
 				cp.logger.Printf("all crawlers successfully shutdown")
 				return
 			}
-			// TODO: what if the depth is < maxdepth?
+			// TODO: what if the depth is < maxdepth? and there is no more urls?
 			if atomic.LoadUint64(&cp.activeCrawlers) == 0 && cp.getDepthCount() > cp.maxDepth {
 				cp.logger.Printf("max depth of %d crawled, shutting down", cp.maxDepth)
 				return
@@ -159,6 +172,13 @@ func (cp *CrawlerPool) Start(ctx context.Context, doneChan chan struct{}) {
 
 			if job.Depth > cp.getDepthCount() {
 				cp.incrementDepthCount()
+			}
+
+			// run filters on job
+			for _, filter := range cp.jobFilters {
+				if !filter.ShouldCrawl(job) {
+					continue
+				}
 			}
 
 			cp.incrementCrawlerCount()
