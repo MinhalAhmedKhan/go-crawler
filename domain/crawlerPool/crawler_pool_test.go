@@ -92,22 +92,6 @@ func TestCrawlerPool_Start(t *testing.T) {
 
 	})
 	t.Run("stop pool when max depth reached", func(t *testing.T) {
-
-		ctx, cancel := context.WithCancel(context.Background())
-		doneChan := make(chan struct{}, 1)
-
-		mockFetcherExtractor := &mocks.FetcherExtractorMock{
-			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
-				return io.NopCloser(strings.NewReader("Monzo")), nil
-			},
-			ExtractFunc: func(io.Reader) (model.CrawlResult, error) {
-				return model.CrawlResult{}, nil
-			},
-		}
-
-		crawlerPool := crawlerPool.New(logger, 5, FIFOqueue.New(), time.Second, mockFetcherExtractor, 1)
-
-		go crawlerPool.Start(ctx, doneChan)
-
+		// TODO: implement this test
 	})
 }
