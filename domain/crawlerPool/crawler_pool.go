@@ -99,7 +99,7 @@ func (cp *CrawlerPool) listenForCompletedJobs(ctx context.Context) {
 // Wait blocks until all crawlers have exited or shutdown timed out forcing a shutdown.
 func (cp *CrawlerPool) wait(ctx context.Context, doneChan chan struct{}) {
 	cancelled := false
-	// signal crawler pool exited
+	// signal crawler pool exited gracefully
 	defer func() {
 		doneChan <- struct{}{}
 	}()
@@ -158,7 +158,6 @@ func (cp *CrawlerPool) Start(ctx context.Context, doneChan chan struct{}) {
 			job, ok := jobPickedUp.(model.CrawlJob)
 
 			if !ok {
-				//TODO: log Invalid job type.
 				cp.logger.Printf("Invalid job type found, got job of type %T", jobPickedUp)
 				continue
 			}

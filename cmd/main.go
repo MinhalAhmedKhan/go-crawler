@@ -26,7 +26,7 @@ func main() {
 			IngressJobQueue:  jobQueue,
 			CrawlerPoolConfig: CrawlerPoolConfig{
 				CrawlerPoolShutDownTimeout: time.Second * 10,
-				CrawlerPoolSize:            100,
+				CrawlerPoolSize:            1000,
 				CrawlerDepth:               3,
 				DoneChan:                   done,
 			},
