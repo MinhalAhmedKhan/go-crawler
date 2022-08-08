@@ -107,7 +107,6 @@ func (cp *CrawlerPool) listenForCompletedJobs(ctx context.Context) {
 		case job := <-cp.crawlerDone:
 			// A crawler completed its job.
 			cp.decrementCrawlerCount()
-
 			if job.Completed {
 				go cp.completionHook(ctx, job)
 			}

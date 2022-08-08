@@ -75,6 +75,6 @@ func (c *Crawler) Crawl(ctx context.Context) {
 	c.job.Completed = true
 }
 
-func (c Crawler) signalDone() {
+func (c *Crawler) signalDone() {
 	c.done <- c.job
 }
