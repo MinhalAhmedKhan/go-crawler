@@ -33,7 +33,7 @@ func main() {
 			IngressJobQueue:  jobQueue,
 			CrawlerPoolConfig: CrawlerPoolConfig{
 				CrawlerPoolShutDownTimeout: time.Second * 10,
-				CrawlerPoolSize:            10,
+				CrawlerPoolSize:            1,
 				CrawlerDepth:               3,
 				JobFilters: []crawlerPool.JobFilter{
 					sameDomainFilter.New(),

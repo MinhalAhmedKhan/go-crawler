@@ -24,7 +24,7 @@ func NewHTTPFetcherExtractor(timeout time.Duration) HTTPFetcherExtractor {
 	}
 }
 
-func (fe HTTPFetcherExtractor) Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error) {
+func (fe HTTPFetcherExtractor) Fetch(ctx context.Context, url *url.URL) (io.ReadCloser, error) {
 	req, err := http.NewRequest(http.MethodGet, url.String(), http.NoBody)
 	if err != nil {
 		return nil, err
@@ -37,12 +37,12 @@ func (fe HTTPFetcherExtractor) Fetch(ctx context.Context, url url.URL) (io.ReadC
 	return resp.Body, nil
 }
 
-func (fe HTTPFetcherExtractor) Extract(contents io.Reader) (model.CrawlResult, error) {
-	return fe.getLinks(contents), nil
+func (fe HTTPFetcherExtractor) Extract(url *url.URL, contents io.Reader) (model.CrawlResult, error) {
+	return fe.getLinks(url, contents), nil
 }
 
 // Collect all links from response body and return it as an array of strings
-func (fe *HTTPFetcherExtractor) getLinks(body io.Reader) model.CrawlResult {
+func (fe *HTTPFetcherExtractor) getLinks(url *url.URL, body io.Reader) model.CrawlResult {
 	crawlResult := model.CrawlResult{NewJobs: []model.CrawlJob{}}
 
 	z := html.NewTokenizer(body)
@@ -62,8 +62,7 @@ func (fe *HTTPFetcherExtractor) getLinks(body io.Reader) model.CrawlResult {
 						if err != nil {
 							continue
 						}
-						// targetURL.ResolveReference()
-						// fmt.Println(targetURL.String(), "is a link", attr.Val)
+						targetURL.ResolveReference(url)
 						crawlResult.NewJobs = append(crawlResult.NewJobs, model.CrawlJob{URL: targetURL})
 					}
 				}

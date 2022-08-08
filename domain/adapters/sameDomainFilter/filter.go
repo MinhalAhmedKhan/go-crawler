@@ -12,5 +12,12 @@ func New() *Filter {
 }
 
 func (f *Filter) ShouldCrawl(job model.CrawlJob) bool {
-	return job.SeedURL.Host == job.URL.Host
+	return f.hostWithoutWWW(job.SeedURL.Host) == f.hostWithoutWWW(job.URL.Host)
+}
+
+func (f Filter) hostWithoutWWW(host string) string {
+	if len(host) > 4 && host[:4] == "www." {
+		return host[4:]
+	}
+	return host
 }

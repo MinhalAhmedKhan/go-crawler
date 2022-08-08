@@ -24,8 +24,8 @@ type (
 	}
 
 	FetcherExtractor interface {
-		Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error)
-		Extract(io.Reader) (model.CrawlResult, error)
+		Fetch(ctx context.Context, url *url.URL) (io.ReadCloser, error)
+		Extract(url *url.URL, contents io.Reader) (model.CrawlResult, error)
 	}
 
 	// JobFilter is a function that returns false if the job should be filtered out.
@@ -152,30 +152,31 @@ func (cp *CrawlerPool) Start(ctx context.Context, doneChan chan struct{}) {
 	go cp.wait(ctx, doneChan)
 
 	for {
+	S:
 		select {
 		case <-ctx.Done():
 			// graceful shutdown
 			return
 		default:
 			if atomic.LoadUint64(&cp.activeCrawlers) == cp.size {
-				continue
+				break S
 			}
 
 			jobPickedUp, err := cp.jobQueue.Pop()
 			if err != nil {
 				// TODO: log error, continue
-				continue
+				break S
 			}
 
 			if jobPickedUp == nil {
-				continue
+				break S
 			}
 
 			job, ok := jobPickedUp.(model.CrawlJob)
 
 			if !ok {
 				cp.logger.Printf("Invalid job type found, got job of type %T", jobPickedUp)
-				continue
+				break S
 			}
 
 			if cp.getDepthCount() > cp.maxDepth {
@@ -192,7 +193,7 @@ func (cp *CrawlerPool) Start(ctx context.Context, doneChan chan struct{}) {
 			// run filters on job
 			for _, filter := range cp.jobFilters {
 				if !filter.ShouldCrawl(job) {
-					continue
+					break S
 				}
 			}
 

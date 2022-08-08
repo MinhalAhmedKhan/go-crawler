@@ -12,8 +12,8 @@ import (
 
 type (
 	FetcherExtractor interface {
-		Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error)
-		Extract(io.Reader) (model.CrawlResult, error)
+		Fetch(ctx context.Context, url *url.URL) (io.ReadCloser, error)
+		Extract(url *url.URL, contents io.Reader) (model.CrawlResult, error)
 	}
 
 	Queue interface {

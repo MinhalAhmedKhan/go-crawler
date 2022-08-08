@@ -16,8 +16,8 @@ type (
 	// Fetching may differ e.g. HTTP, Reading from a file, etc.
 	// Response formats may differ e.g. csv so its responsibility is to also extract based on the expected format.
 	FetcherExtractor interface {
-		Fetch(ctx context.Context, url url.URL) (io.ReadCloser, error)
-		Extract(io.Reader) (model.CrawlResult, error)
+		Fetch(ctx context.Context, url *url.URL) (io.ReadCloser, error)
+		Extract(url *url.URL, contents io.Reader) (model.CrawlResult, error)
 	}
 
 	// Queue of jobs to push to.
@@ -53,7 +53,7 @@ func (c *Crawler) Crawl(ctx context.Context) {
 
 	// TODO: Handle error
 	// error retryable?
-	response, err := c.fetcherExtractor.Fetch(ctx, *c.job.URL)
+	response, err := c.fetcherExtractor.Fetch(ctx, c.job.URL)
 	if err != nil {
 		return
 	}
@@ -61,7 +61,7 @@ func (c *Crawler) Crawl(ctx context.Context) {
 
 	// TODO: Handle error
 	// error retryable?
-	results, _ := c.fetcherExtractor.Extract(response)
+	results, _ := c.fetcherExtractor.Extract(c.job.URL, response)
 
 	fmt.Println("url: ", c.job.URL, "found: ", len(results.NewJobs))
 
