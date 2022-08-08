@@ -31,7 +31,7 @@ type App struct {
 func NewApp(cfg AppConfig) *App {
 	logger := log.New(os.Stdout, "[CrawlerPool]", log.LstdFlags)
 
-	cPool := crawlerPool.New(logger, cfg.CrawlerPoolSize, cfg.IngressJobQueue, cfg.CrawlerPoolShutDownTimeout, cfg.FetcherExtractor, cfg.CrawlerDepth)
+	cPool := crawlerPool.New(logger, cfg.CrawlerPoolSize, cfg.IngressJobQueue, cfg.CrawlerPoolShutDownTimeout, cfg.FetcherExtractor, cfg.CrawlerDepth, nil, crawlerPool.NoOpCompletedHook)
 	return &App{
 		crawlerPool:       cPool,
 		crawlerPoolConfig: cfg.CrawlerPoolConfig,

@@ -92,6 +92,39 @@ func TestCrawlerPool_Start(t *testing.T) {
 
 	})
 	t.Run("stop pool when max depth reached", func(t *testing.T) {
-		// TODO: implement this test
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		const maxDepth = 5
+		doneChan := make(chan struct{}, 1)
+
+		mockFetcherExtractor := &mocks.FetcherExtractorMock{
+			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
+				return io.NopCloser(strings.NewReader("Monzo")), nil
+			},
+			ExtractFunc: func(io.Reader) (model.CrawlResult, error) {
+				return model.CrawlResult{}, nil
+			},
+		}
+
+		jobQueue := FIFOqueue.New()
+		// Given a job in the queue with a max depth of greater than the max depth we want to crawl
+		for i := 1; i <= maxDepth+1; i++ {
+			jobQueue.Push(model.CrawlJob{SeedURL: &url.URL{Scheme: "http", Host: "monzo.com"}, Depth: uint64(i)})
+		}
+
+		cp := crawlerPool.New(logger, 5, jobQueue, time.Second, mockFetcherExtractor, maxDepth)
+
+		// When the crawler pool is started
+		go cp.Start(ctx, doneChan)
+
+		select {
+		case <-doneChan:
+			// Then the crawler should stop and not crawl the site
+			return
+		case <-time.After(time.Second):
+			t.Fatal("crawler pool did not stop when max depth was reached")
+		}
+
 	})
 }

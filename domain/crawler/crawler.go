@@ -35,10 +35,10 @@ type Crawler struct {
 
 	fetcherExtractor FetcherExtractor
 
-	done chan<- struct{} // channel to signal that the crawler is done
+	done chan<- model.CrawlJob // channel to signal that the crawler is done
 }
 
-func New(fetcherExtractor FetcherExtractor, job model.CrawlJob, jobPushQueue Queue, done chan<- struct{}) *Crawler {
+func New(fetcherExtractor FetcherExtractor, job model.CrawlJob, jobPushQueue Queue, done chan<- model.CrawlJob) *Crawler {
 	return &Crawler{
 		job:              job,
 		jobPushQueue:     jobPushQueue,
@@ -72,8 +72,9 @@ func (c *Crawler) Crawl(ctx context.Context) {
 		job.Depth = c.job.Depth + 1
 		_ = c.jobPushQueue.Push(job)
 	}
+	c.job.Completed = true
 }
 
 func (c Crawler) signalDone() {
-	c.done <- struct{}{}
+	c.done <- c.job
 }

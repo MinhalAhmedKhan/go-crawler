@@ -49,18 +49,29 @@ type CrawlerPool struct {
 
 	jobFilters []JobFilter // Filters to apply to jobs.
 
-	activeCrawlers      uint64        // Number of active crawlers.
-	updatedCrawlerCount chan struct{} // Channel to signal that crawler count has been updated.
-	crawlerDone         chan struct{} // Channel to signal that a crawler is done.
+	activeCrawlers      uint64              // Number of active crawlers.
+	updatedCrawlerCount chan struct{}       // Channel to signal that crawler count has been updated.
+	crawlerDone         chan model.CrawlJob // Channel to signal that a crawler is done with this job.
+
+	completionHook CrawlerCompletedHook // Hook to call when a crawler is done.
 
 	shutdownTimeout time.Duration    // Timeout for shutdown.
 	forceShutdown   chan interface{} // Channel to signal that the pool should forcefully shut down.
 
 }
 
+// CrawlerCompletedHook is a function that is called when a crawler is done with a job.
+type CrawlerCompletedHook func(context.Context, model.CrawlJob)
+
+func NoOpCompletedHook(ctx context.Context, model model.CrawlJob) {
+	return
+}
+
 // New creates a new CrawlerPool.
 // Filters are applied in the order they are specified.
-func New(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor, maxDepth uint64, jobFilters ...JobFilter) *CrawlerPool {
+// CompletedHook is called when a crawler is done with a job and is non-blocking
+func New(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor, maxDepth uint64, jobFilters []JobFilter, completionHook CrawlerCompletedHook) *CrawlerPool {
+	// TODO: Add validation for fields
 	return &CrawlerPool{
 		logger: logger,
 
@@ -71,9 +82,13 @@ func New(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Durati
 
 		fetcherExtractor: fetcherExtractor,
 
+		jobFilters: jobFilters,
+
 		activeCrawlers:      0,
 		updatedCrawlerCount: make(chan struct{}),
-		crawlerDone:         make(chan struct{}),
+		crawlerDone:         make(chan model.CrawlJob),
+
+		completionHook: completionHook,
 
 		shutdownTimeout: shutdownTimeout,
 		forceShutdown:   make(chan interface{}, 1),
@@ -89,9 +104,10 @@ func (cp *CrawlerPool) listenForCompletedJobs(ctx context.Context) {
 			}()
 			// set new ctx done channel to prevent spawning shutdown go routines.
 			ctx = context.Background()
-		case <-cp.crawlerDone:
+		case job := <-cp.crawlerDone:
 			// A crawler completed its job.
 			cp.decrementCrawlerCount()
+			go cp.completionHook(ctx, job)
 		}
 	}
 }

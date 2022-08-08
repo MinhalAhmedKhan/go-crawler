@@ -4,8 +4,9 @@ import "net/url"
 
 // CrawlJob represents an url to work on.
 type CrawlJob struct {
-	SeedURL *url.URL
-	Depth   uint64
+	SeedURL   *url.URL
+	Depth     uint64
+	Completed bool // zero value is false
 }
 
 type CrawlResult struct {
