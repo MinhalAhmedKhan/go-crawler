@@ -69,7 +69,7 @@ func NoOpCompletedHook(ctx context.Context, model model.CrawlJob) {
 
 // New creates a new CrawlerPool.
 // Filters are applied in the order they are specified.
-// CompletedHook is called when a crawler is done with a job and is non-blocking
+// CompletedHook is called when a crawler is done with a job and is a non-blocking call.
 func New(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor, maxDepth uint64, jobFilters []JobFilter, completionHook CrawlerCompletedHook) *CrawlerPool {
 	// TODO: Add validation for fields
 	return &CrawlerPool{
@@ -107,7 +107,10 @@ func (cp *CrawlerPool) listenForCompletedJobs(ctx context.Context) {
 		case job := <-cp.crawlerDone:
 			// A crawler completed its job.
 			cp.decrementCrawlerCount()
-			go cp.completionHook(ctx, job)
+
+			if job.Completed {
+				go cp.completionHook(ctx, job)
+			}
 		}
 	}
 }
