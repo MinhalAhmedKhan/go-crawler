@@ -1,8 +1,9 @@
 package FIFOqueue
 
 import (
-	"github.com/antigloss/go/concurrent/container/queue"
 	"sync/atomic"
+
+	"github.com/antigloss/go/concurrent/container/queue"
 )
 
 type FIFOQueue struct {

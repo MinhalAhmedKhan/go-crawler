@@ -2,13 +2,13 @@ package urlFetcherExtractor
 
 import (
 	"context"
-	"golang.org/x/net/html"
 	"io"
+	"monzoCrawler/domain/model"
 	"net/http"
 	"net/url"
 	"time"
 
-	"monzoCrawler/domain/model"
+	"golang.org/x/net/html"
 )
 
 // HTTPFetcherExtractor .
@@ -51,7 +51,7 @@ func (fe *HTTPFetcherExtractor) getLinks(body io.Reader) model.CrawlResult {
 
 		switch tt {
 		case html.ErrorToken:
-			//todo: links list shoudn't contain duplicates
+			// todo: links list shoudn't contain duplicates
 			return crawlResult
 		case html.StartTagToken, html.EndTagToken:
 			token := z.Token()
@@ -62,9 +62,9 @@ func (fe *HTTPFetcherExtractor) getLinks(body io.Reader) model.CrawlResult {
 						if err != nil {
 							continue
 						}
-						//targetURL.ResolveReference()
-						//fmt.Println(targetURL.String(), "is a link", attr.Val)
-						crawlResult.NewJobs = append(crawlResult.NewJobs, model.CrawlJob{SeedURL: targetURL})
+						// targetURL.ResolveReference()
+						// fmt.Println(targetURL.String(), "is a link", attr.Val)
+						crawlResult.NewJobs = append(crawlResult.NewJobs, model.CrawlJob{URL: targetURL})
 					}
 				}
 			}

@@ -4,11 +4,10 @@ import (
 	"context"
 	"io"
 	"log"
-	"net/url"
-	"os"
-
 	"monzoCrawler/domain/crawlerPool"
 	"monzoCrawler/domain/model"
+	"net/url"
+	"os"
 )
 
 type (
@@ -31,7 +30,8 @@ type App struct {
 func NewApp(cfg AppConfig) *App {
 	logger := log.New(os.Stdout, "[CrawlerPool]", log.LstdFlags)
 
-	cPool := crawlerPool.New(logger, cfg.CrawlerPoolSize, cfg.IngressJobQueue, cfg.CrawlerPoolShutDownTimeout, cfg.FetcherExtractor, cfg.CrawlerDepth, nil, crawlerPool.NoOpCompletedHook)
+	// TODO: Takes in a config instead of parameters?
+	cPool := crawlerPool.New(logger, cfg.CrawlerPoolSize, cfg.IngressJobQueue, cfg.CrawlerPoolShutDownTimeout, cfg.FetcherExtractor, cfg.CrawlerDepth, cfg.JobFilters, cfg.CompletionHook)
 	return &App{
 		crawlerPool:       cPool,
 		crawlerPoolConfig: cfg.CrawlerPoolConfig,

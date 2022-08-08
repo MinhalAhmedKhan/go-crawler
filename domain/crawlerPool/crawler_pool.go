@@ -6,13 +6,11 @@ package crawlerPool
 import (
 	"context"
 	"io"
-
+	"monzoCrawler/domain/crawler"
+	"monzoCrawler/domain/model"
 	"net/url"
 	"sync/atomic"
 	"time"
-
-	"monzoCrawler/domain/crawler"
-	"monzoCrawler/domain/model"
 )
 
 type (
@@ -20,7 +18,7 @@ type (
 		Printf(format string, args ...interface{})
 	}
 
-	Queue interface {
+	FIFOQueue interface {
 		Push(val interface{}) error
 		Pop() (interface{}, error)
 	}
@@ -40,10 +38,10 @@ type (
 type CrawlerPool struct {
 	logger Logger
 
-	size         uint64 // Number of crawlers
-	maxDepth     uint64 // Max depth to crawl
-	depthReached uint64 // Depth reached by this pool.
-	jobQueue     Queue  // Jobs to be processed.
+	size         uint64    // Number of crawlers
+	maxDepth     uint64    // Max depth to crawl
+	depthReached uint64    // Depth reached by this pool.
+	jobQueue     FIFOQueue // Jobs to be processed.
 
 	fetcherExtractor FetcherExtractor
 
@@ -63,14 +61,15 @@ type CrawlerPool struct {
 // CrawlerCompletedHook is a function that is called when a crawler is done with a job.
 type CrawlerCompletedHook func(context.Context, model.CrawlJob)
 
-func NoOpCompletedHook(ctx context.Context, model model.CrawlJob) {
+func NoOpCompletedHook(ctx context.Context, job model.CrawlJob) {
 	return
 }
 
 // New creates a new CrawlerPool.
-// Filters are applied in the order they are specified.
-// CompletedHook is called when a crawler is done with a job and is a non-blocking call.
-func New(logger Logger, size uint64, jobQueue Queue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor, maxDepth uint64, jobFilters []JobFilter, completionHook CrawlerCompletedHook) *CrawlerPool {
+// Queue must be a FIFO queue as the first job with the highest depth will stop the crawler pool (BFS).
+// jobFilters are applied in the order they are specified. The first filter that returns false will cause the job to be filtered out.
+// CompletedHook is called when a crawler is done with a job.
+func New(logger Logger, size uint64, jobQueue FIFOQueue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor, maxDepth uint64, jobFilters []JobFilter, completionHook CrawlerCompletedHook) *CrawlerPool {
 	// TODO: Add validation for fields
 	return &CrawlerPool{
 		logger: logger,
@@ -108,7 +107,7 @@ func (cp *CrawlerPool) listenForCompletedJobs(ctx context.Context) {
 			// A crawler completed its job.
 			cp.decrementCrawlerCount()
 			if job.Completed {
-				go cp.completionHook(ctx, job)
+				cp.completionHook(ctx, job)
 			}
 		}
 	}
@@ -163,9 +162,8 @@ func (cp *CrawlerPool) Start(ctx context.Context, doneChan chan struct{}) {
 			}
 
 			jobPickedUp, err := cp.jobQueue.Pop()
-
 			if err != nil {
-				//TODO: log error, continue
+				// TODO: log error, continue
 				continue
 			}
 

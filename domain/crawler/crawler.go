@@ -7,9 +7,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
-
 	"monzoCrawler/domain/model"
+	"net/url"
 )
 
 type (
@@ -54,7 +53,7 @@ func (c *Crawler) Crawl(ctx context.Context) {
 
 	// TODO: Handle error
 	// error retryable?
-	response, err := c.fetcherExtractor.Fetch(ctx, *c.job.SeedURL)
+	response, err := c.fetcherExtractor.Fetch(ctx, *c.job.URL)
 	if err != nil {
 		return
 	}
@@ -64,12 +63,13 @@ func (c *Crawler) Crawl(ctx context.Context) {
 	// error retryable?
 	results, _ := c.fetcherExtractor.Extract(response)
 
-	fmt.Println("url: ", c.job.SeedURL, "found: ", len(results.NewJobs))
+	fmt.Println("url: ", c.job.URL, "found: ", len(results.NewJobs))
 
 	for _, job := range results.NewJobs {
 		// TODO: Handle error
 		// increment depth
 		job.Depth = c.job.Depth + 1
+		job.SeedURL = c.job.SeedURL
 		_ = c.jobPushQueue.Push(job)
 	}
 	c.job.Completed = true

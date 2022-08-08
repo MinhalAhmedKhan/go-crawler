@@ -3,14 +3,13 @@ package crawler_test
 import (
 	"context"
 	"io"
+	"monzoCrawler/domain/crawler"
 	"monzoCrawler/domain/crawler/internal/mocks"
 	"monzoCrawler/domain/model"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
-
-	"monzoCrawler/domain/crawler"
 )
 
 func TestCrawler_Crawl(t *testing.T) {
@@ -32,7 +31,7 @@ func TestCrawler_Crawl(t *testing.T) {
 			},
 		}
 
-		crawlJob := model.CrawlJob{SeedURL: &url.URL{
+		crawlJob := model.CrawlJob{URL: &url.URL{
 			Scheme: "http",
 			Host:   "www.google.com",
 		}}
@@ -49,6 +48,5 @@ func TestCrawler_Crawl(t *testing.T) {
 		case <-doneChan:
 			return
 		}
-
 	})
 }

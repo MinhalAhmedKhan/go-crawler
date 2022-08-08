@@ -1,22 +1,29 @@
 package main
 
 import (
-	"monzoCrawler/domain/model"
 	"net/url"
 	"time"
 
 	"monzoCrawler/domain/adapters/FIFOqueue"
+	"monzoCrawler/domain/adapters/sameDomainFilter"
 	"monzoCrawler/domain/adapters/urlFetcherExtractor"
+	"monzoCrawler/domain/crawlerPool"
+	"monzoCrawler/domain/hooks/storeCrawlJob"
+	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/store"
 )
 
 func main() {
 	ctx, cancel := listenForCancellationAndAddToContext()
 	defer cancel()
 
+	urlStore := store.NewUrlStore()
 	jobQueue := FIFOqueue.New()
+
 	fetcherExtractor := urlFetcherExtractor.NewHTTPFetcherExtractor(time.Minute)
 
-	jobQueue.Push(model.CrawlJob{SeedURL: &url.URL{Scheme: "http", Host: "monzo.com"}})
+	SeedURL := &url.URL{Scheme: "http", Host: "monzo.com"}
+	jobQueue.Push(model.CrawlJob{SeedURL: SeedURL, URL: SeedURL})
 
 	done := make(chan struct{}, 1)
 
@@ -26,9 +33,13 @@ func main() {
 			IngressJobQueue:  jobQueue,
 			CrawlerPoolConfig: CrawlerPoolConfig{
 				CrawlerPoolShutDownTimeout: time.Second * 10,
-				CrawlerPoolSize:            1000,
+				CrawlerPoolSize:            10,
 				CrawlerDepth:               3,
-				DoneChan:                   done,
+				JobFilters: []crawlerPool.JobFilter{
+					sameDomainFilter.New(),
+				},
+				CompletionHook: storeHook.New(urlStore).Store,
+				DoneChan:       done,
 			},
 		})
 

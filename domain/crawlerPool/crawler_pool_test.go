@@ -1,11 +1,11 @@
 package crawlerPool_test
 
 import (
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 	"io"
 	"log"
 	"monzoCrawler/domain/adapters/FIFOqueue"
+	"monzoCrawler/domain/crawlerPool"
+	"monzoCrawler/domain/crawlerPool/internal/mocks"
 	"monzoCrawler/domain/model"
 	"net/url"
 	"os"
@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"monzoCrawler/domain/crawlerPool"
-	"monzoCrawler/domain/crawlerPool/internal/mocks"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 func TestCrawlerPool_Start(t *testing.T) {
@@ -30,7 +30,7 @@ func TestCrawlerPool_Start(t *testing.T) {
 
 		// Given a job in the queue
 		jobQueue := FIFOqueue.New()
-		err := jobQueue.Push(model.CrawlJob{SeedURL: &url.URL{Scheme: "http", Host: siteToCrawl}})
+		err := jobQueue.Push(model.CrawlJob{URL: &url.URL{Scheme: "http", Host: siteToCrawl}})
 		assert.NoError(t, err, "expected no error when pushing a job to the queue")
 
 		crawlerStartedFetching := make(chan struct{}, 1)
@@ -47,7 +47,7 @@ func TestCrawlerPool_Start(t *testing.T) {
 			},
 		}
 
-		cp := crawlerPool.New(logger, 2, jobQueue, time.Second, mockFetcherExtractor, 1)
+		cp := crawlerPool.New(logger, 2, jobQueue, time.Second, mockFetcherExtractor, 1, nil, crawlerPool.NoOpCompletedHook)
 
 		// When the crawler pool is started
 		go cp.Start(ctx, doneChan)
@@ -59,10 +59,8 @@ func TestCrawlerPool_Start(t *testing.T) {
 		case <-time.After(time.Second):
 			t.Error("crawler did not start and finish")
 		}
-
 	})
 	t.Run("stop pool when context is cancelled", func(t *testing.T) {
-
 		ctx, cancel := context.WithCancel(context.Background())
 		doneChan := make(chan struct{}, 1)
 
@@ -75,7 +73,7 @@ func TestCrawlerPool_Start(t *testing.T) {
 			},
 		}
 
-		cp := crawlerPool.New(logger, 5, FIFOqueue.New(), time.Second, mockFetcherExtractor, 10)
+		cp := crawlerPool.New(logger, 5, FIFOqueue.New(), time.Second, mockFetcherExtractor, 10, nil, crawlerPool.NoOpCompletedHook)
 
 		go cp.Start(ctx, doneChan)
 
@@ -89,7 +87,6 @@ func TestCrawlerPool_Start(t *testing.T) {
 		case <-time.After(time.Second * 5):
 			t.Fatal("crawler pool did not stop when context was cancelled")
 		}
-
 	})
 	t.Run("stop pool when max depth reached", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -110,10 +107,10 @@ func TestCrawlerPool_Start(t *testing.T) {
 		jobQueue := FIFOqueue.New()
 		// Given a job in the queue with a max depth of greater than the max depth we want to crawl
 		for i := 1; i <= maxDepth+1; i++ {
-			jobQueue.Push(model.CrawlJob{SeedURL: &url.URL{Scheme: "http", Host: "monzo.com"}, Depth: uint64(i)})
+			jobQueue.Push(model.CrawlJob{URL: &url.URL{Scheme: "http", Host: "monzo.com"}, Depth: uint64(i)})
 		}
 
-		cp := crawlerPool.New(logger, 5, jobQueue, time.Second, mockFetcherExtractor, maxDepth)
+		cp := crawlerPool.New(logger, 5, jobQueue, time.Second, mockFetcherExtractor, maxDepth, nil, crawlerPool.NoOpCompletedHook)
 
 		// When the crawler pool is started
 		go cp.Start(ctx, doneChan)
@@ -125,6 +122,37 @@ func TestCrawlerPool_Start(t *testing.T) {
 		case <-time.After(time.Second):
 			t.Fatal("crawler pool did not stop when max depth was reached")
 		}
+	})
+	t.Run("call completion hook when crawler is done", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
+		doneChan := make(chan struct{}, 1)
+		comletionHookCalled := make(chan struct{}, 1)
+
+		mockFetcherExtractor := &mocks.FetcherExtractorMock{
+			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
+				return io.NopCloser(strings.NewReader("Monzo")), nil
+			},
+			ExtractFunc: func(io.Reader) (model.CrawlResult, error) {
+				return model.CrawlResult{}, nil
+			},
+		}
+
+		jobQueue := FIFOqueue.New()
+		jobQueue.Push(model.CrawlJob{URL: &url.URL{Scheme: "http", Host: "monzo.com"}})
+
+		cp := crawlerPool.New(logger, 5, jobQueue, time.Second, mockFetcherExtractor, 10, nil, func(ctx context.Context, job model.CrawlJob) {
+			comletionHookCalled <- struct{}{}
+		})
+
+		go cp.Start(ctx, doneChan)
+
+		select {
+		case <-comletionHookCalled:
+			return
+		case <-time.After(time.Second):
+			t.Fatal("crawler pool did not call completion hook when crawler is done")
+		}
 	})
 }
