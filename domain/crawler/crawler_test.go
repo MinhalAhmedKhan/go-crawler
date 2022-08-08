@@ -17,10 +17,10 @@ func TestCrawler_Crawl(t *testing.T) {
 		t.Parallel()
 
 		fetcherExtractorMock := &mocks.FetcherExtractorMock{
-			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
+			FetchFunc: func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error) {
 				return io.NopCloser(strings.NewReader("")), nil
 			},
-			ExtractFunc: func(reader io.Reader) (model.CrawlResult, error) {
+			ExtractFunc: func(url *url.URL, content io.Reader) (model.CrawlResult, error) {
 				return model.CrawlResult{}, nil
 			},
 		}
@@ -36,7 +36,7 @@ func TestCrawler_Crawl(t *testing.T) {
 			Host:   "www.google.com",
 		}}
 
-		doneChan := make(chan struct{})
+		doneChan := make(chan model.CrawlJob)
 
 		crwler := crawler.New(fetcherExtractorMock, crawlJob, queue, doneChan)
 
