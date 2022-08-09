@@ -1,3 +1,5 @@
+//go:build unit
+
 package crawlerPool_test
 
 import (
