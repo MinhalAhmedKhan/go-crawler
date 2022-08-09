@@ -142,9 +142,12 @@ func TestCrawlerPool_Start(t *testing.T) {
 		}
 
 		jobQueue := FIFOqueue.New()
-		jobQueue.Push(models.CrawlJob{URL: &url.URL{Scheme: "http", Host: "monzo.com"}})
+		startUrl := &url.URL{Scheme: "http", Host: "monzo.com"}
+
+		jobQueue.Push(models.CrawlJob{URL: startUrl})
 
 		cp := crawlerPool.New(logger, 5, jobQueue, time.Second, mockFetcherExtractor, 10, emptyJobPrinter(), nil, func(ctx context.Context, job models.CrawlJob) {
+			assert.Equal(t, startUrl.String(), job.URL.String(), "completion hook called with wrong job")
 			comletionHookCalled <- struct{}{}
 		})
 
