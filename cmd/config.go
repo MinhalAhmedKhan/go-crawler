@@ -12,9 +12,11 @@ type AppConfig struct {
 }
 
 type CrawlerPoolConfig struct {
+	Logger                     crawlerPool.Logger
 	CrawlerPoolShutDownTimeout time.Duration
 	CrawlerPoolSize            uint64
 	CrawlerDepth               uint64
+	JobPrinter                 crawlerPool.JobPrinter
 	JobFilters                 []crawlerPool.JobFilter
 	CompletionHook             crawlerPool.CrawlerCompletedHook
 	DoneChan                   chan struct{}

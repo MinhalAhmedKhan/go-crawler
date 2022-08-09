@@ -5,7 +5,7 @@ import (
 	"io"
 	"monzoCrawler/domain/crawler"
 	"monzoCrawler/domain/crawler/internal/mocks"
-	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/models"
 	"net/url"
 	"strings"
 	"testing"
@@ -20,8 +20,8 @@ func TestCrawler_Crawl(t *testing.T) {
 			FetchFunc: func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error) {
 				return io.NopCloser(strings.NewReader("")), nil
 			},
-			ExtractFunc: func(url *url.URL, content io.Reader) (model.CrawlResult, error) {
-				return model.CrawlResult{}, nil
+			ExtractFunc: func(url *url.URL, content io.Reader) (models.CrawlResult, error) {
+				return models.CrawlResult{}, nil
 			},
 		}
 
@@ -31,12 +31,12 @@ func TestCrawler_Crawl(t *testing.T) {
 			},
 		}
 
-		crawlJob := model.CrawlJob{URL: &url.URL{
+		crawlJob := models.CrawlJob{URL: &url.URL{
 			Scheme: "http",
 			Host:   "www.google.com",
 		}}
 
-		doneChan := make(chan model.CrawlJob)
+		doneChan := make(chan models.CrawlJob)
 
 		crwler := crawler.New(fetcherExtractorMock, crawlJob, queue, doneChan)
 

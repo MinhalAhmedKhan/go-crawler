@@ -3,7 +3,7 @@ package urlFetcherExtractor
 import (
 	"context"
 	"io"
-	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/models"
 	"net/http"
 	"net/url"
 	"time"
@@ -37,13 +37,13 @@ func (fe HTTPFetcherExtractor) Fetch(ctx context.Context, url *url.URL) (io.Read
 	return resp.Body, nil
 }
 
-func (fe HTTPFetcherExtractor) Extract(url *url.URL, contents io.Reader) (model.CrawlResult, error) {
+func (fe HTTPFetcherExtractor) Extract(url *url.URL, contents io.Reader) (models.CrawlResult, error) {
 	return fe.getLinks(url, contents), nil
 }
 
 // Collect all links from response body and return it as an array of strings
-func (fe *HTTPFetcherExtractor) getLinks(url *url.URL, body io.Reader) model.CrawlResult {
-	crawlResult := model.CrawlResult{NewJobs: []model.CrawlJob{}}
+func (fe *HTTPFetcherExtractor) getLinks(url *url.URL, body io.Reader) models.CrawlResult {
+	crawlResult := models.CrawlResult{NewJobs: []models.CrawlJob{}}
 
 	z := html.NewTokenizer(body)
 	for {
@@ -63,7 +63,7 @@ func (fe *HTTPFetcherExtractor) getLinks(url *url.URL, body io.Reader) model.Cra
 							continue
 						}
 						targetURL.ResolveReference(url)
-						crawlResult.NewJobs = append(crawlResult.NewJobs, model.CrawlJob{URL: targetURL})
+						crawlResult.NewJobs = append(crawlResult.NewJobs, models.CrawlJob{URL: targetURL})
 					}
 				}
 			}

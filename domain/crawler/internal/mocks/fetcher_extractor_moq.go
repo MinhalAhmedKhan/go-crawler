@@ -7,7 +7,7 @@ import (
 	"context"
 	"io"
 	"monzoCrawler/domain/crawler"
-	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/models"
 	"net/url"
 	"sync"
 )
@@ -22,7 +22,7 @@ var _ crawler.FetcherExtractor = &FetcherExtractorMock{}
 //
 // 		// make and configure a mocked crawler.FetcherExtractor
 // 		mockedFetcherExtractor := &FetcherExtractorMock{
-// 			ExtractFunc: func(urlMoqParam *url.URL, contents io.Reader) (model.CrawlResult, error) {
+// 			ExtractFunc: func(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error) {
 // 				panic("mock out the Extract method")
 // 			},
 // 			FetchFunc: func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error) {
@@ -36,7 +36,7 @@ var _ crawler.FetcherExtractor = &FetcherExtractorMock{}
 // 	}
 type FetcherExtractorMock struct {
 	// ExtractFunc mocks the Extract method.
-	ExtractFunc func(urlMoqParam *url.URL, contents io.Reader) (model.CrawlResult, error)
+	ExtractFunc func(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error)
 
 	// FetchFunc mocks the Fetch method.
 	FetchFunc func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error)
@@ -63,7 +63,7 @@ type FetcherExtractorMock struct {
 }
 
 // Extract calls ExtractFunc.
-func (mock *FetcherExtractorMock) Extract(urlMoqParam *url.URL, contents io.Reader) (model.CrawlResult, error) {
+func (mock *FetcherExtractorMock) Extract(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error) {
 	if mock.ExtractFunc == nil {
 		panic("FetcherExtractorMock.ExtractFunc: method is nil but FetcherExtractor.Extract was just called")
 	}

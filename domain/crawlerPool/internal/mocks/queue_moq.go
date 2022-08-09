@@ -8,16 +8,16 @@ import (
 	"sync"
 )
 
-// Ensure, that QueueMock does implement crawlerPool.Queue.
+// Ensure, that FIFOQueueMock does implement crawlerPool.FIFOQueue.
 // If this is not the case, regenerate this file with moq.
-var _ crawlerPool.Queue = &QueueMock{}
+var _ crawlerPool.FIFOQueue = &FIFOQueueMock{}
 
-// QueueMock is a mock implementation of crawlerPool.Queue.
+// FIFOQueueMock is a mock implementation of crawlerPool.FIFOQueue.
 //
-// 	func TestSomethingThatUsesQueue(t *testing.T) {
+// 	func TestSomethingThatUsesFIFOQueue(t *testing.T) {
 //
-// 		// make and configure a mocked crawlerPool.Queue
-// 		mockedQueue := &QueueMock{
+// 		// make and configure a mocked crawlerPool.FIFOQueue
+// 		mockedFIFOQueue := &FIFOQueueMock{
 // 			PopFunc: func() (interface{}, error) {
 // 				panic("mock out the Pop method")
 // 			},
@@ -26,11 +26,11 @@ var _ crawlerPool.Queue = &QueueMock{}
 // 			},
 // 		}
 //
-// 		// use mockedQueue in code that requires crawlerPool.Queue
+// 		// use mockedFIFOQueue in code that requires crawlerPool.FIFOQueue
 // 		// and then make assertions.
 //
 // 	}
-type QueueMock struct {
+type FIFOQueueMock struct {
 	// PopFunc mocks the Pop method.
 	PopFunc func() (interface{}, error)
 
@@ -53,9 +53,9 @@ type QueueMock struct {
 }
 
 // Pop calls PopFunc.
-func (mock *QueueMock) Pop() (interface{}, error) {
+func (mock *FIFOQueueMock) Pop() (interface{}, error) {
 	if mock.PopFunc == nil {
-		panic("QueueMock.PopFunc: method is nil but Queue.Pop was just called")
+		panic("FIFOQueueMock.PopFunc: method is nil but FIFOQueue.Pop was just called")
 	}
 	callInfo := struct {
 	}{}
@@ -67,8 +67,8 @@ func (mock *QueueMock) Pop() (interface{}, error) {
 
 // PopCalls gets all the calls that were made to Pop.
 // Check the length with:
-//     len(mockedQueue.PopCalls())
-func (mock *QueueMock) PopCalls() []struct {
+//     len(mockedFIFOQueue.PopCalls())
+func (mock *FIFOQueueMock) PopCalls() []struct {
 } {
 	var calls []struct {
 	}
@@ -79,9 +79,9 @@ func (mock *QueueMock) PopCalls() []struct {
 }
 
 // Push calls PushFunc.
-func (mock *QueueMock) Push(val interface{}) error {
+func (mock *FIFOQueueMock) Push(val interface{}) error {
 	if mock.PushFunc == nil {
-		panic("QueueMock.PushFunc: method is nil but Queue.Push was just called")
+		panic("FIFOQueueMock.PushFunc: method is nil but FIFOQueue.Push was just called")
 	}
 	callInfo := struct {
 		Val interface{}
@@ -96,8 +96,8 @@ func (mock *QueueMock) Push(val interface{}) error {
 
 // PushCalls gets all the calls that were made to Push.
 // Check the length with:
-//     len(mockedQueue.PushCalls())
-func (mock *QueueMock) PushCalls() []struct {
+//     len(mockedFIFOQueue.PushCalls())
+func (mock *FIFOQueueMock) PushCalls() []struct {
 	Val interface{}
 } {
 	var calls []struct {

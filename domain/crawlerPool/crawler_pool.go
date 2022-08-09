@@ -1,5 +1,6 @@
-//go:generate moq -out internal/mocks/queue_moq.go -pkg mocks . Queue
+//go:generate moq -out internal/mocks/queue_moq.go -pkg mocks . FIFOQueue
 //go:generate moq -out internal/mocks/fetcherextractor_moq.go -pkg mocks . FetcherExtractor
+//go:generate moq -out internal/mocks/job_printer_moq.go -pkg mocks . JobPrinter
 
 package crawlerPool
 
@@ -7,7 +8,7 @@ import (
 	"context"
 	"io"
 	"monzoCrawler/domain/crawler"
-	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/models"
 	"net/url"
 	"sync/atomic"
 	"time"
@@ -25,12 +26,16 @@ type (
 
 	FetcherExtractor interface {
 		Fetch(ctx context.Context, url *url.URL) (io.ReadCloser, error)
-		Extract(url *url.URL, contents io.Reader) (model.CrawlResult, error)
+		Extract(url *url.URL, contents io.Reader) (models.CrawlResult, error)
+	}
+
+	JobPrinter interface {
+		Print(job models.CrawlJob)
 	}
 
 	// JobFilter is a function that returns false if the job should be filtered out.
 	JobFilter interface {
-		ShouldCrawl(job model.CrawlJob) bool
+		ShouldCrawl(job models.CrawlJob) bool
 	}
 )
 
@@ -45,11 +50,13 @@ type CrawlerPool struct {
 
 	fetcherExtractor FetcherExtractor
 
+	jobPrinter JobPrinter // Prints the job to the logger after completion.
+
 	jobFilters []JobFilter // Filters to apply to jobs.
 
-	activeCrawlers      uint64              // Number of active crawlers.
-	updatedCrawlerCount chan struct{}       // Channel to signal that crawler count has been updated.
-	crawlerDone         chan model.CrawlJob // Channel to signal that a crawler is done with this job.
+	activeCrawlers      uint64               // Number of active crawlers.
+	updatedCrawlerCount chan struct{}        // Channel to signal that crawler count has been updated.
+	crawlerDone         chan models.CrawlJob // Channel to signal that a crawler is done with this job.
 
 	completionHook CrawlerCompletedHook // Hook to call when a crawler is done.
 
@@ -59,9 +66,9 @@ type CrawlerPool struct {
 }
 
 // CrawlerCompletedHook is a function that is called when a crawler is done with a job.
-type CrawlerCompletedHook func(context.Context, model.CrawlJob)
+type CrawlerCompletedHook func(context.Context, models.CrawlJob)
 
-func NoOpCompletedHook(ctx context.Context, job model.CrawlJob) {
+func NoOpCompletedHook(ctx context.Context, job models.CrawlJob) {
 	return
 }
 
@@ -69,7 +76,7 @@ func NoOpCompletedHook(ctx context.Context, job model.CrawlJob) {
 // Queue must be a FIFO queue as the first job with the highest depth will stop the crawler pool (BFS).
 // jobFilters are applied in the order they are specified. The first filter that returns false will cause the job to be filtered out.
 // CompletedHook is called when a crawler is done with a job.
-func New(logger Logger, size uint64, jobQueue FIFOQueue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor, maxDepth uint64, jobFilters []JobFilter, completionHook CrawlerCompletedHook) *CrawlerPool {
+func New(logger Logger, size uint64, jobQueue FIFOQueue, shutdownTimeout time.Duration, fetcherExtractor FetcherExtractor, maxDepth uint64, jobPrinter JobPrinter, jobFilters []JobFilter, completionHook CrawlerCompletedHook) *CrawlerPool {
 	// TODO: Add validation for fields
 	return &CrawlerPool{
 		logger: logger,
@@ -81,11 +88,13 @@ func New(logger Logger, size uint64, jobQueue FIFOQueue, shutdownTimeout time.Du
 
 		fetcherExtractor: fetcherExtractor,
 
+		jobPrinter: jobPrinter,
+
 		jobFilters: jobFilters,
 
 		activeCrawlers:      0,
 		updatedCrawlerCount: make(chan struct{}),
-		crawlerDone:         make(chan model.CrawlJob),
+		crawlerDone:         make(chan models.CrawlJob),
 
 		completionHook: completionHook,
 
@@ -106,8 +115,10 @@ func (cp *CrawlerPool) listenForCompletedJobs(ctx context.Context) {
 		case job := <-cp.crawlerDone:
 			// A crawler completed its job.
 			cp.decrementCrawlerCount()
+
 			if job.Completed {
 				cp.completionHook(ctx, job)
+				cp.jobPrinter.Print(job)
 			}
 		}
 	}
@@ -172,7 +183,7 @@ func (cp *CrawlerPool) Start(ctx context.Context, doneChan chan struct{}) {
 				break S
 			}
 
-			job, ok := jobPickedUp.(model.CrawlJob)
+			job, ok := jobPickedUp.(models.CrawlJob)
 
 			if !ok {
 				cp.logger.Printf("Invalid job type found, got job of type %T", jobPickedUp)

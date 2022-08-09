@@ -5,9 +5,8 @@ package crawler
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/models"
 	"net/url"
 )
 
@@ -17,7 +16,7 @@ type (
 	// Response formats may differ e.g. csv so its responsibility is to also extract based on the expected format.
 	FetcherExtractor interface {
 		Fetch(ctx context.Context, url *url.URL) (io.ReadCloser, error)
-		Extract(url *url.URL, contents io.Reader) (model.CrawlResult, error)
+		Extract(url *url.URL, contents io.Reader) (models.CrawlResult, error)
 	}
 
 	// Queue of jobs to push to.
@@ -27,21 +26,21 @@ type (
 )
 
 type Crawler struct {
-	job          model.CrawlJob // job to crawl
-	jobPushQueue Queue          // queue to send generated jobs to
+	job          models.CrawlJob // job to crawl
+	jobPushQueue Queue           // queue to send generated jobs to
 
-	result model.CrawlResult // result of the crawl
+	result models.CrawlResult // result of the crawl
 
 	fetcherExtractor FetcherExtractor
 
-	done chan<- model.CrawlJob // channel to signal that the crawler is done
+	done chan<- models.CrawlJob // channel to signal that the crawler is done
 }
 
-func New(fetcherExtractor FetcherExtractor, job model.CrawlJob, jobPushQueue Queue, done chan<- model.CrawlJob) *Crawler {
+func New(fetcherExtractor FetcherExtractor, job models.CrawlJob, jobPushQueue Queue, done chan<- models.CrawlJob) *Crawler {
 	return &Crawler{
 		job:              job,
 		jobPushQueue:     jobPushQueue,
-		result:           model.CrawlResult{},
+		result:           models.CrawlResult{},
 		fetcherExtractor: fetcherExtractor,
 		done:             done,
 	}
@@ -63,8 +62,6 @@ func (c *Crawler) Crawl(ctx context.Context) {
 	// error retryable?
 	results, _ := c.fetcherExtractor.Extract(c.job.URL, response)
 
-	fmt.Println("url: ", c.job.URL, "found: ", len(results.NewJobs))
-
 	for _, job := range results.NewJobs {
 		// TODO: Handle error
 		// increment depth
@@ -73,6 +70,7 @@ func (c *Crawler) Crawl(ctx context.Context) {
 		_ = c.jobPushQueue.Push(job)
 	}
 	c.job.Completed = true
+	c.job.Result = results
 }
 
 func (c *Crawler) signalDone() {

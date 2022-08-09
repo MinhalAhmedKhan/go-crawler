@@ -7,7 +7,7 @@ import (
 	"context"
 	"io"
 	"monzoCrawler/domain/crawlerPool"
-	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/models"
 	"net/url"
 	"sync"
 )
@@ -22,10 +22,10 @@ var _ crawlerPool.FetcherExtractor = &FetcherExtractorMock{}
 //
 // 		// make and configure a mocked crawlerPool.FetcherExtractor
 // 		mockedFetcherExtractor := &FetcherExtractorMock{
-// 			ExtractFunc: func(reader io.Reader) (model.CrawlResult, error) {
+// 			ExtractFunc: func(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error) {
 // 				panic("mock out the Extract method")
 // 			},
-// 			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
+// 			FetchFunc: func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error) {
 // 				panic("mock out the Fetch method")
 // 			},
 // 		}
@@ -36,24 +36,26 @@ var _ crawlerPool.FetcherExtractor = &FetcherExtractorMock{}
 // 	}
 type FetcherExtractorMock struct {
 	// ExtractFunc mocks the Extract method.
-	ExtractFunc func(reader io.Reader) (model.CrawlResult, error)
+	ExtractFunc func(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error)
 
 	// FetchFunc mocks the Fetch method.
-	FetchFunc func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error)
+	FetchFunc func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// Extract holds details about calls to the Extract method.
 		Extract []struct {
-			// Reader is the reader argument value.
-			Reader io.Reader
+			// UrlMoqParam is the urlMoqParam argument value.
+			UrlMoqParam *url.URL
+			// Contents is the contents argument value.
+			Contents io.Reader
 		}
 		// Fetch holds details about calls to the Fetch method.
 		Fetch []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// UrlMoqParam is the urlMoqParam argument value.
-			UrlMoqParam url.URL
+			UrlMoqParam *url.URL
 		}
 	}
 	lockExtract sync.RWMutex
@@ -61,29 +63,33 @@ type FetcherExtractorMock struct {
 }
 
 // Extract calls ExtractFunc.
-func (mock *FetcherExtractorMock) Extract(reader io.Reader) (model.CrawlResult, error) {
+func (mock *FetcherExtractorMock) Extract(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error) {
 	if mock.ExtractFunc == nil {
 		panic("FetcherExtractorMock.ExtractFunc: method is nil but FetcherExtractor.Extract was just called")
 	}
 	callInfo := struct {
-		Reader io.Reader
+		UrlMoqParam *url.URL
+		Contents    io.Reader
 	}{
-		Reader: reader,
+		UrlMoqParam: urlMoqParam,
+		Contents:    contents,
 	}
 	mock.lockExtract.Lock()
 	mock.calls.Extract = append(mock.calls.Extract, callInfo)
 	mock.lockExtract.Unlock()
-	return mock.ExtractFunc(reader)
+	return mock.ExtractFunc(urlMoqParam, contents)
 }
 
 // ExtractCalls gets all the calls that were made to Extract.
 // Check the length with:
 //     len(mockedFetcherExtractor.ExtractCalls())
 func (mock *FetcherExtractorMock) ExtractCalls() []struct {
-	Reader io.Reader
+	UrlMoqParam *url.URL
+	Contents    io.Reader
 } {
 	var calls []struct {
-		Reader io.Reader
+		UrlMoqParam *url.URL
+		Contents    io.Reader
 	}
 	mock.lockExtract.RLock()
 	calls = mock.calls.Extract
@@ -92,13 +98,13 @@ func (mock *FetcherExtractorMock) ExtractCalls() []struct {
 }
 
 // Fetch calls FetchFunc.
-func (mock *FetcherExtractorMock) Fetch(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
+func (mock *FetcherExtractorMock) Fetch(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error) {
 	if mock.FetchFunc == nil {
 		panic("FetcherExtractorMock.FetchFunc: method is nil but FetcherExtractor.Fetch was just called")
 	}
 	callInfo := struct {
 		Ctx         context.Context
-		UrlMoqParam url.URL
+		UrlMoqParam *url.URL
 	}{
 		Ctx:         ctx,
 		UrlMoqParam: urlMoqParam,
@@ -114,11 +120,11 @@ func (mock *FetcherExtractorMock) Fetch(ctx context.Context, urlMoqParam url.URL
 //     len(mockedFetcherExtractor.FetchCalls())
 func (mock *FetcherExtractorMock) FetchCalls() []struct {
 	Ctx         context.Context
-	UrlMoqParam url.URL
+	UrlMoqParam *url.URL
 } {
 	var calls []struct {
 		Ctx         context.Context
-		UrlMoqParam url.URL
+		UrlMoqParam *url.URL
 	}
 	mock.lockFetch.RLock()
 	calls = mock.calls.Fetch

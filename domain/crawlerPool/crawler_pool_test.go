@@ -6,7 +6,7 @@ import (
 	"monzoCrawler/domain/adapters/FIFOqueue"
 	"monzoCrawler/domain/crawlerPool"
 	"monzoCrawler/domain/crawlerPool/internal/mocks"
-	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/models"
 	"net/url"
 	"os"
 	"strings"
@@ -30,24 +30,24 @@ func TestCrawlerPool_Start(t *testing.T) {
 
 		// Given a job in the queue
 		jobQueue := FIFOqueue.New()
-		err := jobQueue.Push(model.CrawlJob{URL: &url.URL{Scheme: "http", Host: siteToCrawl}})
+		err := jobQueue.Push(models.CrawlJob{URL: &url.URL{Scheme: "http", Host: siteToCrawl}})
 		assert.NoError(t, err, "expected no error when pushing a job to the queue")
 
 		crawlerStartedFetching := make(chan struct{}, 1)
 
 		mockFetcherExtractor := &mocks.FetcherExtractorMock{
-			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
+			FetchFunc: func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error) {
 				assert.Equal(t, siteToCrawl, urlMoqParam.Host, "fetch called with wrong url")
 				crawlerStartedFetching <- struct{}{}
 
 				return io.NopCloser(strings.NewReader("Monzo")), nil
 			},
-			ExtractFunc: func(io.Reader) (model.CrawlResult, error) {
-				return model.CrawlResult{}, nil
+			ExtractFunc: func(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error) {
+				return models.CrawlResult{}, nil
 			},
 		}
 
-		cp := crawlerPool.New(logger, 2, jobQueue, time.Second, mockFetcherExtractor, 1, nil, crawlerPool.NoOpCompletedHook)
+		cp := crawlerPool.New(logger, 2, jobQueue, time.Second, mockFetcherExtractor, 1, emptyJobPrinter(), nil, crawlerPool.NoOpCompletedHook)
 
 		// When the crawler pool is started
 		go cp.Start(ctx, doneChan)
@@ -65,15 +65,15 @@ func TestCrawlerPool_Start(t *testing.T) {
 		doneChan := make(chan struct{}, 1)
 
 		mockFetcherExtractor := &mocks.FetcherExtractorMock{
-			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
+			FetchFunc: func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error) {
 				return io.NopCloser(strings.NewReader("Monzo")), nil
 			},
-			ExtractFunc: func(io.Reader) (model.CrawlResult, error) {
-				return model.CrawlResult{}, nil
+			ExtractFunc: func(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error) {
+				return models.CrawlResult{}, nil
 			},
 		}
 
-		cp := crawlerPool.New(logger, 5, FIFOqueue.New(), time.Second, mockFetcherExtractor, 10, nil, crawlerPool.NoOpCompletedHook)
+		cp := crawlerPool.New(logger, 5, FIFOqueue.New(), time.Second, mockFetcherExtractor, 10, emptyJobPrinter(), nil, crawlerPool.NoOpCompletedHook)
 
 		go cp.Start(ctx, doneChan)
 
@@ -96,21 +96,21 @@ func TestCrawlerPool_Start(t *testing.T) {
 		doneChan := make(chan struct{}, 1)
 
 		mockFetcherExtractor := &mocks.FetcherExtractorMock{
-			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
+			FetchFunc: func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error) {
 				return io.NopCloser(strings.NewReader("Monzo")), nil
 			},
-			ExtractFunc: func(io.Reader) (model.CrawlResult, error) {
-				return model.CrawlResult{}, nil
+			ExtractFunc: func(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error) {
+				return models.CrawlResult{}, nil
 			},
 		}
 
 		jobQueue := FIFOqueue.New()
 		// Given a job in the queue with a max depth of greater than the max depth we want to crawl
 		for i := 1; i <= maxDepth+1; i++ {
-			jobQueue.Push(model.CrawlJob{URL: &url.URL{Scheme: "http", Host: "monzo.com"}, Depth: uint64(i)})
+			jobQueue.Push(models.CrawlJob{URL: &url.URL{Scheme: "http", Host: "monzo.com"}, Depth: uint64(i)})
 		}
 
-		cp := crawlerPool.New(logger, 5, jobQueue, time.Second, mockFetcherExtractor, maxDepth, nil, crawlerPool.NoOpCompletedHook)
+		cp := crawlerPool.New(logger, 5, jobQueue, time.Second, mockFetcherExtractor, maxDepth, emptyJobPrinter(), nil, crawlerPool.NoOpCompletedHook)
 
 		// When the crawler pool is started
 		go cp.Start(ctx, doneChan)
@@ -131,18 +131,18 @@ func TestCrawlerPool_Start(t *testing.T) {
 		comletionHookCalled := make(chan struct{}, 1)
 
 		mockFetcherExtractor := &mocks.FetcherExtractorMock{
-			FetchFunc: func(ctx context.Context, urlMoqParam url.URL) (io.ReadCloser, error) {
+			FetchFunc: func(ctx context.Context, urlMoqParam *url.URL) (io.ReadCloser, error) {
 				return io.NopCloser(strings.NewReader("Monzo")), nil
 			},
-			ExtractFunc: func(io.Reader) (model.CrawlResult, error) {
-				return model.CrawlResult{}, nil
+			ExtractFunc: func(urlMoqParam *url.URL, contents io.Reader) (models.CrawlResult, error) {
+				return models.CrawlResult{}, nil
 			},
 		}
 
 		jobQueue := FIFOqueue.New()
-		jobQueue.Push(model.CrawlJob{URL: &url.URL{Scheme: "http", Host: "monzo.com"}})
+		jobQueue.Push(models.CrawlJob{URL: &url.URL{Scheme: "http", Host: "monzo.com"}})
 
-		cp := crawlerPool.New(logger, 5, jobQueue, time.Second, mockFetcherExtractor, 10, nil, func(ctx context.Context, job model.CrawlJob) {
+		cp := crawlerPool.New(logger, 5, jobQueue, time.Second, mockFetcherExtractor, 10, emptyJobPrinter(), nil, func(ctx context.Context, job models.CrawlJob) {
 			comletionHookCalled <- struct{}{}
 		})
 
@@ -155,4 +155,10 @@ func TestCrawlerPool_Start(t *testing.T) {
 			t.Fatal("crawler pool did not call completion hook when crawler is done")
 		}
 	})
+}
+
+func emptyJobPrinter() *mocks.JobPrinterMock {
+	return &mocks.JobPrinterMock{
+		PrintFunc: func(job models.CrawlJob) {},
+	}
 }

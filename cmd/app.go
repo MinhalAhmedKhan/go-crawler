@@ -3,17 +3,15 @@ package main
 import (
 	"context"
 	"io"
-	"log"
 	"monzoCrawler/domain/crawlerPool"
-	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/models"
 	"net/url"
-	"os"
 )
 
 type (
 	FetcherExtractor interface {
 		Fetch(ctx context.Context, url *url.URL) (io.ReadCloser, error)
-		Extract(url *url.URL, contents io.Reader) (model.CrawlResult, error)
+		Extract(url *url.URL, contents io.Reader) (models.CrawlResult, error)
 	}
 
 	Queue interface {
@@ -28,10 +26,8 @@ type App struct {
 }
 
 func NewApp(cfg AppConfig) *App {
-	logger := log.New(os.Stdout, "[CrawlerPool]", log.LstdFlags)
-
 	// TODO: Takes in a config instead of parameters?
-	cPool := crawlerPool.New(logger, cfg.CrawlerPoolSize, cfg.IngressJobQueue, cfg.CrawlerPoolShutDownTimeout, cfg.FetcherExtractor, cfg.CrawlerDepth, cfg.JobFilters, cfg.CompletionHook)
+	cPool := crawlerPool.New(cfg.Logger, cfg.CrawlerPoolSize, cfg.IngressJobQueue, cfg.CrawlerPoolShutDownTimeout, cfg.FetcherExtractor, cfg.CrawlerDepth, cfg.JobPrinter, cfg.JobFilters, cfg.CompletionHook)
 	return &App{
 		crawlerPool:       cPool,
 		crawlerPoolConfig: cfg.CrawlerPoolConfig,

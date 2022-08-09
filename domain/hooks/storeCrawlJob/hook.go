@@ -3,7 +3,7 @@ package storeHook
 import (
 	"context"
 	"log"
-	"monzoCrawler/domain/model"
+	"monzoCrawler/domain/models"
 )
 
 type Store interface {
@@ -20,7 +20,7 @@ func New(store Store) *StoreHook {
 	}
 }
 
-func (h *StoreHook) Store(ctx context.Context, job model.CrawlJob) {
+func (h *StoreHook) Store(ctx context.Context, job models.CrawlJob) {
 	if err := h.store.Add(job.URL.String()); err != nil {
 		log.Printf("Error storing job: %s", err)
 	}

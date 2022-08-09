@@ -1,8 +1,6 @@
 package sameDomainFilter
 
-import (
-	"monzoCrawler/domain/model"
-)
+import "monzoCrawler/domain/models"
 
 type Filter struct {
 }
@@ -11,7 +9,7 @@ func New() *Filter {
 	return &Filter{}
 }
 
-func (f *Filter) ShouldCrawl(job model.CrawlJob) bool {
+func (f *Filter) ShouldCrawl(job models.CrawlJob) bool {
 	return f.hostWithoutWWW(job.SeedURL.Host) == f.hostWithoutWWW(job.URL.Host)
 }
 
